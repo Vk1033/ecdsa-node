@@ -1,7 +1,8 @@
 import { useState } from "react";
 import server from "./server";
+import signMessage from "./crypto.js";
 
-function Transfer({ address, setBalance }) {
+function Transfer({ privKey, setBalance }) {
   const [sendAmount, setSendAmount] = useState("");
   const [recipient, setRecipient] = useState("");
 
@@ -9,12 +10,19 @@ function Transfer({ address, setBalance }) {
 
   async function transfer(evt) {
     evt.preventDefault();
+    const msg = `send ${sendAmount} to ${recipient}`;
+    const { r, s, recovery } = await signMessage(msg, privKey);
 
     try {
       const {
         data: { balance },
       } = await server.post(`send`, {
-        sender: address,
+        msg,
+        signature: {
+          r: r.toString(),
+          s: s.toString(),
+          recovery,
+        },
         amount: parseInt(sendAmount),
         recipient,
       });
@@ -30,20 +38,12 @@ function Transfer({ address, setBalance }) {
 
       <label>
         Send Amount
-        <input
-          placeholder="1, 2, 3..."
-          value={sendAmount}
-          onChange={setValue(setSendAmount)}
-        ></input>
+        <input placeholder="1, 2, 3..." value={sendAmount} onChange={setValue(setSendAmount)}></input>
       </label>
 
       <label>
         Recipient
-        <input
-          placeholder="Type an address, for example: 0x2"
-          value={recipient}
-          onChange={setValue(setRecipient)}
-        ></input>
+        <input placeholder="Type an public key" value={recipient} onChange={setValue(setRecipient)}></input>
       </label>
 
       <input type="submit" className="button" value="Transfer" />
